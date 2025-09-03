@@ -1,0 +1,181 @@
+.search-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: #ddf4ff;
+  border: 1px solid #54aeff;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0969da;
+  cursor: default;
+  transition: all 0.15s ease;
+  user-select: none;
+  
+  &.editable {
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #b6e3ff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(9, 105, 218, 0.2);
+    }
+  }
+  
+  &.invalid {
+    background-color: #ffebe9;
+    border-color: #ff8182;
+    color: #d1242f;
+    
+    &:hover {
+      background-color: #ffd6d3;
+    }
+  }
+}
+
+.tag-content {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tag-type {
+  font-weight: 600;
+  color: inherit;
+}
+
+.tag-separator {
+  color: currentColor;
+  opacity: 0.7;
+}
+
+.tag-operator {
+  color: inherit;
+  font-style: italic;
+}
+
+.tag-value {
+  font-weight: 600;
+  color: inherit;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+  &::before {
+    content: '"';
+    opacity: 0.6;
+  }
+  
+  &::after {
+    content: '"';
+    opacity: 0.6;
+  }
+}
+
+.tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  color: currentColor;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.7;
+  
+  &:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+  
+  &:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+  }
+  
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+// Animation for tag appearance
+@keyframes tagAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.search-tag {
+  animation: tagAppear 0.2s ease-out;
+}
+
+// Different tag styles for different states
+.search-tag {
+  &.type-branch-name {
+    background-color: #e6ffed;
+    border-color: #2da44e;
+    color: #1a7f37;
+  }
+  
+  &.type-iteration {
+    background-color: #fff8c5;
+    border-color: #d4ac00;
+    color: #7d4e00;
+  }
+  
+  &.type-status {
+    background-color: #f0e6ff;
+    border-color: #8250df;
+    color: #6639ba;
+  }
+  
+  &.type-created-date {
+    background-color: #fff0e6;
+    border-color: #fb8500;
+    color: #c66400;
+  }
+  
+  &.type-assignee {
+    background-color: #ffe6f0;
+    border-color: #d0418b;
+    color: #a93665;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .search-tag {
+    border-width: 2px;
+    font-weight: 600;
+  }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .search-tag {
+    animation: none;
+    transition: none;
+    
+    &:hover {
+      transform: none;
+    }
+  }
+  
+  .tag-remove:hover {
+    transform: none;
+  }
+}

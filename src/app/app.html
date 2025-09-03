@@ -1,0 +1,62 @@
+<div class="app-container">
+  <header class="app-header">
+    <h1>{{ title() }}</h1>
+    <p>A GitHub-like search component with configurable search types and operators.</p>
+  </header>
+
+  <main class="app-main">
+    @if (searchConfig()) {
+      <div class="search-section">
+        <h2>Interactive Search</h2>
+        <p>Start typing a search type like "branch-name", "iteration", "status", "created-date", or "assignee"</p>
+        
+        <app-search 
+          [config]="searchConfig()!"
+          (queryChanged)="onQueryChanged($event)"
+          (criteriaChanged)="onCriteriaChanged($event)">
+        </app-search>
+      </div>
+
+      <div class="features-section">
+        <h2>Available Search Types</h2>
+        <div class="feature-grid">
+          @for (type of searchConfig()!.availableTypes; track type.id) {
+            <div class="feature-card">
+              <h3>{{ type.label }}</h3>
+              @if (type.description) {
+                <p class="description">{{ type.description }}</p>
+              }
+              <div class="operators">
+                <strong>Operators:</strong>
+                @for (operator of type.supportedOperators; track operator.type; let isLast = $last) {
+                  <span class="operator">{{ operator.label }}</span>@if (!isLast) {<span>, </span>}
+                }
+              </div>
+              <div class="value-type">
+                <strong>Type:</strong> 
+                <span class="type-badge">{{ type.valueType }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="instructions-section">
+        <h2>How to Use</h2>
+        <ol>
+          <li><strong>Type a search field:</strong> Start typing any of the available search types (branch-name, iteration, etc.)</li>
+          <li><strong>Select from dropdown:</strong> Use arrow keys to navigate and Enter to select, or click on a suggestion</li>
+          <li><strong>Add criteria manually:</strong> Click the + button next to the search input to open the criteria builder</li>
+          <li><strong>Edit tags:</strong> Click on any existing tag to open the editor and modify its operator or value</li>
+          <li><strong>Remove tags:</strong> Click the × button on any tag to remove it</li>
+          <li><strong>Multiple criteria:</strong> Add multiple search criteria to build complex queries with AND logic</li>
+          <li><strong>Value types:</strong> Each search type supports different input types (text, numbers, dates, dropdowns)</li>
+        </ol>
+      </div>
+    } @else {
+      <div class="loading">Loading search configuration...</div>
+    }
+  </main>
+</div>
+
+<router-outlet />
