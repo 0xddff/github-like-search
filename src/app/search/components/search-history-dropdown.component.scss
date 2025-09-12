@@ -1,0 +1,364 @@
+.history-dropdown {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  background: white;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
+  z-index: 1001; // Higher than suggestions dropdown
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  animation: slideInDown 0.2s ease-out;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f6f8fa;
+  border-bottom: 1px solid #d1d9e0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #656d76;
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  color: #656d76;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background: #e1e4e8;
+    color: #0969da;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.history-search {
+  padding: 8px 12px;
+  border-bottom: 1px solid #d1d9e0;
+}
+
+.history-search-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d1d9e0;
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  color: #1f2328;
+  outline: none;
+  
+  &:focus {
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.3);
+  }
+  
+  &::placeholder {
+    color: #656d76;
+  }
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.no-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  color: #656d76;
+  font-size: 14px;
+  text-align: center;
+  
+  svg {
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f6f8fa;
+  transition: background-color 0.2s ease;
+  
+  &:hover,
+  &.highlighted {
+    background: #f6f8fa;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.history-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-display-text {
+  font-size: 13px;
+  color: #1f2328;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #656d76;
+}
+
+.history-mode {
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 10px;
+  
+  &.mode-visual {
+    background: #ddf4ff;
+    color: #0969da;
+  }
+  
+  &.mode-raw {
+    background: #f0f6ff;
+    color: #6639ba;
+  }
+}
+
+.history-time {
+  opacity: 0.8;
+}
+
+.remove-history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  border-radius: 2px;
+  color: #656d76;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  
+  .history-item:hover & {
+    opacity: 1;
+  }
+  
+  &:hover {
+    background: #ffebe9;
+    color: #d1242f;
+  }
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f6f8fa;
+  border-top: 1px solid #d1d9e0;
+  font-size: 11px;
+  color: #656d76;
+}
+
+.history-stats {
+  font-weight: 500;
+}
+
+.history-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  kbd {
+    background: white;
+    border: 1px solid #d1d9e0;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: normal;
+    color: #1f2328;
+    box-shadow: inset 0 -1px 0 #afb8c1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .history-dropdown {
+    width: 90vw;
+    max-width: 340px;
+    max-height: 300px;
+  }
+  
+  .history-list {
+    max-height: 200px;
+  }
+  
+  .history-shortcuts {
+    display: none; // Hide keyboard shortcuts on mobile
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .history-dropdown {
+    background: #21262d;
+    border-color: #30363d;
+    color: #f0f6fc;
+  }
+  
+  .history-header {
+    background: #161b22;
+    border-bottom-color: #30363d;
+    color: #8b949e;
+  }
+  
+  .history-search-input {
+    background: #0d1117;
+    border-color: #30363d;
+    color: #f0f6fc;
+    
+    &:focus {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
+    }
+    
+    &::placeholder {
+      color: #8b949e;
+    }
+  }
+  
+  .action-btn {
+    color: #8b949e;
+    
+    &:hover:not(:disabled) {
+      background: #30363d;
+      color: #58a6ff;
+    }
+  }
+  
+  .history-item {
+    border-bottom-color: #21262d;
+    
+    &:hover,
+    &.highlighted {
+      background: #161b22;
+    }
+  }
+  
+  .history-display-text {
+    color: #f0f6fc;
+  }
+  
+  .history-metadata {
+    color: #8b949e;
+  }
+  
+  .history-mode {
+    &.mode-visual {
+      background: rgba(88, 166, 255, 0.15);
+      color: #58a6ff;
+    }
+    
+    &.mode-raw {
+      background: rgba(163, 113, 247, 0.15);
+      color: #a371f7;
+    }
+  }
+  
+  .remove-history-btn {
+    color: #8b949e;
+    
+    &:hover {
+      background: rgba(248, 81, 73, 0.15);
+      color: #f85149;
+    }
+  }
+  
+  .history-footer {
+    background: #161b22;
+    border-top-color: #30363d;
+    color: #8b949e;
+    
+    kbd {
+      background: #21262d;
+      border-color: #30363d;
+      color: #f0f6fc;
+    }
+  }
+  
+  .no-history {
+    color: #8b949e;
+  }
+}

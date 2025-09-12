@@ -1,0 +1,192 @@
+.template-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.fab-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--primary-color, #0969da);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--primary-hover, #0860ca);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(9, 105, 218, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    transition: transform 0.2s ease;
+  }
+
+  .expanded & svg {
+    transform: rotate(45deg);
+  }
+}
+
+.fab-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fabActionsSlideUp 0.2s ease;
+}
+
+.fab-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #333333);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 28px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--bg-hover, #f0f6ff);
+    border-color: var(--primary-color, #0969da);
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &.save-action {
+    background: var(--success-color, #16a34a);
+    color: white;
+    border-color: var(--success-color, #16a34a);
+
+    &:hover {
+      background: var(--success-hover, #15803d);
+      border-color: var(--success-hover, #15803d);
+    }
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// Animations
+@keyframes fabActionsSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Dark mode
+@media (prefers-color-scheme: dark) {
+  .template-fab {
+    --bg-primary: #0d1117;
+    --bg-hover: #161b22;
+    --text-primary: #f0f6fc;
+    --border-color: #30363d;
+    --primary-color: #58a6ff;
+    --primary-hover: #4493f8;
+    --success-color: #238636;
+    --success-hover: #2ea043;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .template-fab {
+    bottom: 16px;
+    right: 16px;
+
+    .fab-main {
+      width: 48px;
+      height: 48px;
+    }
+
+    .fab-action {
+      padding: 10px 14px;
+      font-size: 13px;
+
+      span {
+        display: none; // Hide text on mobile, show only icons
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .template-fab {
+    bottom: 12px;
+    right: 12px;
+  }
+}
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .fab-main,
+  .fab-action {
+    transition: none;
+  }
+
+  .fab-actions {
+    animation: none;
+  }
+
+  .fab-main:hover {
+    transform: none;
+  }
+
+  .fab-action:hover {
+    transform: none;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .fab-main {
+    border: 2px solid var(--text-primary, #333333);
+  }
+
+  .fab-action {
+    border-width: 2px;
+  }
+}
+
+// Focus styles for keyboard navigation
+.fab-main:focus-visible,
+.fab-action:focus-visible {
+  outline: 2px solid var(--focus-color, #005cc5);
+  outline-offset: 2px;
+}
+
+// Ensure FAB doesn't interfere with page content
+.template-fab {
+  pointer-events: none;
+
+  .fab-main,
+  .fab-action {
+    pointer-events: all;
+  }
+}

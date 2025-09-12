@@ -97,3 +97,86 @@ export interface ValidationWarning {
   message: string;
   type: string;
 }
+
+// Extended Template Models
+export enum LogicalOperator {
+  AND = 'AND',
+  OR = 'OR'
+}
+
+// We'll define this here to avoid circular imports
+export interface BaseSearchTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  query: SearchQuery;
+  searchMode: 'visual' | 'raw';
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  usageCount: number;
+  lastUsedAt?: Date;
+  isPublic: boolean;
+  color?: string;
+  icon?: string;
+}
+
+export interface ExtendedSearchTemplate extends BaseSearchTemplate {
+  // Add logical operator support to templates
+  logicalOperator?: LogicalOperator;
+  
+  // Template groups for organization
+  groupId?: string;
+  groupName?: string;
+  
+  // Enhanced sharing and collaboration
+  isShared?: boolean;
+  shareUrl?: string;
+  collaborators?: string[];
+  
+  // Template metadata
+  version?: number;
+  parentTemplateId?: string;
+  forkCount?: number;
+  
+  // Usage analytics
+  lastUsed?: Date;
+  usageFrequency?: number;
+  
+  // Template validation
+  isValid?: boolean;
+  validationErrors?: string[];
+}
+
+export interface TemplateGroup {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+  templates: ExtendedSearchTemplate[];
+  isCollapsed?: boolean;
+  createdAt: Date;
+}
+
+export interface QuickTemplate {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  template: ExtendedSearchTemplate;
+  color?: string;
+  hotkey?: string;
+}
+
+export interface DateRangeFilter {
+  field: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  preset?: 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+  relative?: {
+    value: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+    direction: 'past' | 'future';
+  };
+}

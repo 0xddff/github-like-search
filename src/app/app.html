@@ -10,6 +10,15 @@
         <h2>Interactive Search</h2>
         <p>Start typing a search type like "branch-name", "iteration", "status", "created-date", or "assignee"</p>
         
+        <div class="feature-highlights">
+          <div class="highlight">
+            <strong>🚀 NEW:</strong> Raw Query Mode - Switch between visual and text-based search
+          </div>
+          <div class="highlight">
+            <strong>⌨️ Keyboard Shortcuts:</strong> <kbd>Ctrl+K</kbd> to focus, <kbd>/</kbd> to search, <kbd>Esc</kbd> to clear/close
+          </div>
+        </div>
+        
         <app-search 
           [config]="searchConfig()!"
           (queryChanged)="onQueryChanged($event)"
@@ -44,13 +53,19 @@
       <div class="instructions-section">
         <h2>How to Use</h2>
         <ol>
-          <li><strong>Type a search field:</strong> Start typing any of the available search types (branch-name, iteration, etc.)</li>
-          <li><strong>Select from dropdown:</strong> Use arrow keys to navigate and Enter to select, or click on a suggestion</li>
-          <li><strong>Add criteria manually:</strong> Click the + button next to the search input to open the criteria builder</li>
-          <li><strong>Edit tags:</strong> Click on any existing tag to open the editor and modify its operator or value</li>
-          <li><strong>Remove tags:</strong> Click the × button on any tag to remove it</li>
-          <li><strong>Multiple criteria:</strong> Add multiple search criteria to build complex queries with AND logic</li>
-          <li><strong>Value types:</strong> Each search type supports different input types (text, numbers, dates, dropdowns)</li>
+          <li><strong>Switch Modes:</strong> Toggle between Visual and Raw Query modes using the buttons above the search</li>
+          <li><strong>Visual Mode:</strong> Start typing any search type (branch-name, iteration, etc.) and select from dropdown</li>
+          <li><strong>Raw Query Mode:</strong> Type queries like <code>branch-name:main iteration:>5 status:Active</code></li>
+          <li><strong>Add criteria:</strong> Use the + button or type search types to add criteria</li>
+          <li><strong>Edit tags:</strong> Click on any existing tag to modify its operator or value</li>
+          <li><strong>Keyboard shortcuts:</strong> 
+            <ul>
+              <li><kbd>Ctrl+K</kbd> or <kbd>Cmd+K</kbd> - Focus search input</li>
+              <li><kbd>/</kbd> - Focus search input (like GitHub)</li>
+              <li><kbd>Esc</kbd> - Close modals, clear suggestions, or clear search</li>
+            </ul>
+          </li>
+          <li><strong>Query operators:</strong> Use <code>></code>, <code><</code>, <code>=</code>, <code>!=</code>, <code>~</code> (contains) in raw mode</li>
         </ol>
       </div>
     } @else {

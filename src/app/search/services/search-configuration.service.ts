@@ -93,7 +93,9 @@ export class SearchConfigurationService {
         }
         break;
       case 'min':
-        if (value && Number(value) < rule.value) {
+        // Handle both numeric and text length validation
+        const minValue = typeof value === 'string' ? value.length : Number(value);
+        if (value && minValue < rule.value) {
           return {
             field: 'value',
             message: rule.message,
@@ -102,7 +104,9 @@ export class SearchConfigurationService {
         }
         break;
       case 'max':
-        if (value && Number(value) > rule.value) {
+        // Handle both numeric and text length validation
+        const maxValue = typeof value === 'string' ? value.length : Number(value);
+        if (value && maxValue > rule.value) {
           return {
             field: 'value',
             message: rule.message,
@@ -137,7 +141,12 @@ export class SearchConfigurationService {
             { type: SearchOperatorType.ENDS_WITH, label: 'ends with', requiresValue: true }
           ],
           valueType: SearchValueType.TEXT,
-          defaultOperator: SearchOperatorType.CONTAINS
+          defaultOperator: SearchOperatorType.CONTAINS,
+          validation: [
+            { type: 'pattern', value: '^[a-zA-Z0-9/_-]+$', message: 'Branch name can only contain letters, numbers, hyphens, underscores, and forward slashes' },
+            { type: 'min', value: 1, message: 'Branch name cannot be empty' },
+            { type: 'max', value: 255, message: 'Branch name cannot exceed 255 characters' }
+          ]
         },
         {
           id: 'iteration',
@@ -153,7 +162,8 @@ export class SearchConfigurationService {
           valueType: SearchValueType.NUMBER,
           defaultOperator: SearchOperatorType.EQUALS,
           validation: [
-            { type: 'min', value: 1, message: 'Iteration must be at least 1' }
+            { type: 'min', value: 1, message: 'Iteration number must be 1 or greater' },
+            { type: 'max', value: 999, message: 'Iteration number cannot exceed 999' }
           ]
         },
         {
@@ -192,7 +202,12 @@ export class SearchConfigurationService {
             { type: SearchOperatorType.IS_NOT_EMPTY, label: 'is not empty', requiresValue: false }
           ],
           valueType: SearchValueType.TEXT,
-          defaultOperator: SearchOperatorType.EQUALS
+          defaultOperator: SearchOperatorType.EQUALS,
+          validation: [
+            { type: 'pattern', value: '^[a-zA-Z0-9._-]+$', message: 'Username can only contain letters, numbers, periods, hyphens, and underscores' },
+            { type: 'min', value: 1, message: 'Username cannot be empty' },
+            { type: 'max', value: 39, message: 'Username cannot exceed 39 characters' }
+          ]
         }
       ],
       maxCriteria: 10,

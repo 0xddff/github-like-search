@@ -1,90 +1,277 @@
-import { Component, input, output, signal, computed, inject } from '@angular/core';
+import { Component, input, output, signal, computed, inject, OnInit, OnDestroy, ElementRef, ViewChild, untracked } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { SearchTagComponent } from './search-tag.component';
 import { SearchDefinitionComponent } from './search-definition.component';
+import { SearchHistoryDropdownComponent } from './search-history-dropdown.component';
+import { TemplateManagerComponent } from './template-manager.component';
+import { ExtendedTemplatesService, TemplatePreset } from '../services';
+import { ExtendedSearchTemplate } from '../models';
+import { SmartSuggestionsDropdownComponent } from './smart-suggestions-dropdown.component';
 import { 
   SearchConfiguration, 
   SearchQuery, 
   SearchCriteria, 
   SearchType,
   SearchOperator,
-  SearchOperatorType
+  SearchOperatorType,
+  LogicalOperator
 } from '../models';
-import { SearchConfigurationService, SearchValidationService } from '../services';
+import { SearchConfigurationService, SearchValidationService, QueryParserService, UrlSyncService, SearchHistoryService, SearchHistoryEntry, DragDropService, SearchTemplatesService, SearchTemplate, SearchSuggestionsService, SuggestionItem, BulkOperationsService } from '../services';
 
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, SearchTagComponent, SearchDefinitionComponent],
+  imports: [CommonModule, SearchTagComponent, SearchDefinitionComponent, SearchHistoryDropdownComponent, TemplateManagerComponent, SmartSuggestionsDropdownComponent],
   template: `
     <div class="search-container" [class.focused]="isFocused()">
-      <div class="search-input-wrapper">
-        <input 
-          #searchInput
-          type="text"
-          class="search-input"
-          [placeholder]="config().placeholder || 'Search...'"
-          [value]="currentInput()"
-          (focus)="onFocus()"
-          (blur)="onBlur()"
-          (keydown)="onKeyDown($event)"
-          (input)="onInput($event)"
-        />
-        
+      <!-- Search Mode Toggle -->
+      <div class="search-mode-toggle">
         <button 
-          class="add-criteria-btn"
-          type="button"
-          (click)="openDefinitionModal()"
-          title="Add search criteria">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/>
+          class="mode-toggle-btn"
+          [class.active]="!isRawQueryMode()"
+          (click)="switchToVisualMode()"
+          type="button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm0 4a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm0 4a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11z"/>
           </svg>
+          Visual
         </button>
-        
-        <!-- Search Tags -->
-        <div class="search-tags" *ngIf="searchCriteria().length > 0">
-          @for (criteria of searchCriteria(); track criteria.id) {
-            <app-search-tag
-              [criteria]="criteria"
-              [editable]="true"
-              [removable]="true"
-              (edit)="editCriteria($event.id)"
-              (remove)="removeCriteria($event.id)">
-            </app-search-tag>
-          }
+        <button 
+          class="mode-toggle-btn"
+          [class.active]="isRawQueryMode()"
+          (click)="switchToRawQueryMode()"
+          type="button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M5.854 4.854a.5.5 0 1 0-.708-.708l-3.5 3.5a.5.5 0 0 0 0 .708l3.5 3.5a.5.5 0 0 0 .708-.708L2.707 8l3.147-3.146zm4.292 0a.5.5 0 0 1 .708-.708l3.5 3.5a.5.5 0 0 1 0 .708l-3.5 3.5a.5.5 0 0 1-.708-.708L13.293 8l-3.147-3.146z"/>
+          </svg>
+          Raw Query
+        </button>
+      </div>
+
+
+      @if (!isRawQueryMode()) {
+        <!-- Visual Mode -->
+        <!-- Search Input Bar -->
+        <div class="search-input-wrapper">
+          <input 
+            #searchInput
+            type="text"
+            class="search-input"
+            placeholder="Search..."
+            (focus)="onFocus()"
+            (blur)="onBlur()"
+            (input)="onInput($event)"
+          />
+          
+          <div class="search-actions">
+            <button 
+              class="add-criteria-btn"
+              type="button"
+              (click)="openDefinitionModal()"
+              title="Add search criteria">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/>
+              </svg>
+            </button>
+            
+            <button 
+              class="history-btn"
+              type="button"
+              (click)="toggleHistoryDropdown()"
+              [class.active]="showHistoryDropdown()"
+              title="Search history">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0zM8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.5 4.75a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 .471.696l2.5 1a.75.75 0 0 0 .557-1.392L8.5 7.742V4.75z"/>
+              </svg>
+            </button>
+            
+            <button 
+              class="templates-btn"
+              type="button"
+              (click)="openTemplateManager()"
+              title="Manage templates">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 4.75A.75.75 0 0 1 2.75 4h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75zM2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8zm0 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75z"/>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Smart Suggestions Dropdown - positioned relative to input -->
+          <app-smart-suggestions-dropdown
+            [isOpen]="showSuggestions()"
+            [context]="getSuggestionContext()"
+            (select)="onSmartSuggestionSelect($event)"
+            (close)="hideSuggestions()">
+          </app-smart-suggestions-dropdown>
         </div>
         
-        <!-- Type Suggestions Dropdown -->
-        @if (showSuggestions() && filteredTypes().length > 0) {
-          <div class="suggestions-dropdown">
-            @for (type of filteredTypes(); track type.id) {
-              <div class="suggestion-item" 
-                   (click)="selectSearchType(type)"
-                   [class.highlighted]="selectedSuggestionIndex() === $index">
-                <strong>{{ type.label }}</strong>
-                @if (type.description) {
-                  <span class="suggestion-description">{{ type.description }}</span>
-                }
+        <!-- Active Search Criteria -->
+        @if (searchCriteria().length > 0) {
+          <div class="search-criteria-section">
+            <div class="criteria-header">
+              <div class="criteria-title">
+                <span class="title-text">Active Filters</span>
+                <span class="criteria-count">{{ searchCriteria().length }}</span>
               </div>
-            }
+              <div class="criteria-actions">
+                @if (searchCriteria().length > 1) {
+                  <div class="logical-operator-toggle">
+                    <span class="operator-label">Join with:</span>
+                    <div class="operator-buttons">
+                      <button 
+                        class="operator-btn"
+                        [class.active]="currentLogicalOperator() === 'AND'"
+                        (click)="setLogicalOperator('AND')"
+                        type="button"
+                        title="All conditions must match">
+                        AND
+                      </button>
+                      <button 
+                        class="operator-btn"
+                        [class.active]="currentLogicalOperator() === 'OR'"
+                        (click)="setLogicalOperator('OR')"
+                        type="button"
+                        title="Any condition must match">
+                        OR
+                      </button>
+                    </div>
+                  </div>
+                }
+                <button 
+                  class="clear-all-btn"
+                  type="button"
+                  (click)="clearAllCriteria()"
+                  title="Clear all filters">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                  </svg>
+                  Clear All
+                </button>
+              </div>
+            </div>
+            
+            <!-- Search Tags -->
+            <div class="search-tags" 
+                 #searchTagsContainer>
+              @for (criteria of searchCriteria(); track criteria.id; let i = $index) {
+                @if (i > 0) {
+                  <div class="logical-operator-connector">
+                    <span class="operator-text">{{ currentLogicalOperator() }}</span>
+                  </div>
+                }
+                <app-search-tag
+                  [criteria]="criteria"
+                  [index]="i"
+                  [editable]="true"
+                  [removable]="true"
+                  [draggable]="searchCriteria().length > 1"
+                  (edit)="editCriteria($event.id)"
+                  (remove)="removeCriteria($event.id)"
+                  (dragStart)="onCriteriaDragStart($event)"
+                  (dragOver)="onCriteriaDragOver($event)"
+                  (drop)="onCriteriaDrop($event)"
+                  (dragEnd)="onCriteriaDragEnd()">
+                </app-search-tag>
+              }
+            </div>
+            
           </div>
         }
-      </div>
+        
+        <!-- Empty State -->
+        @if (searchCriteria().length === 0) {
+          <div class="search-empty-state">
+            <div class="empty-state-content">
+              <svg class="empty-state-icon" width="48" height="48" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+              </svg>
+              <h3 class="empty-state-title">No search criteria</h3>
+              <p class="empty-state-description">
+                Add search criteria to filter your results. Click the "+" button above or use the search suggestions.
+              </p>
+            </div>
+          </div>
+        }
+        
+      } @else {
+        <!-- Raw Query Mode -->
+        <div class="search-input-wrapper raw-query-mode">
+          <textarea
+            #rawQueryTextarea
+            class="raw-query-input"
+            placeholder="Enter raw query (e.g., branch-name:main iteration:>5 status:Active)"
+            [value]="rawQueryInput()"
+            (input)="onRawQueryInput($event)"
+            (focus)="onFocus()"
+            (blur)="onBlur()"
+            rows="1">
+          </textarea>
+          
+          <button 
+            class="parse-query-btn"
+            type="button"
+            (click)="parseAndApplyRawQuery()"
+            title="Parse and apply query"
+            [disabled]="!rawQueryInput().trim()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+            </svg>
+          </button>
+        </div>
+      }
       
       @if (searchQuery().isValid && searchQuery().criteria.length > 0) {
         <div class="query-preview">
-          Query: {{ buildReadableQuery() }}
+          <div class="preview-header">
+            <div class="preview-label">
+              {{ isRawQueryMode() ? 'Parsed Query:' : 'Raw Query:' }}
+            </div>
+            <button 
+              class="share-btn"
+              type="button"
+              (click)="copyShareableUrl()"
+              title="Copy shareable URL">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M7.775 3.275a.75.75 0 001.06-1.06l1.25-1.25a2 2 0 112.83 2.83l-2.5 2.5a2 2 0 01-2.83 0 .75.75 0 00-1.06 1.06 3.5 3.5 0 004.95 0l2.5-2.5a3.5 3.5 0 00-4.95-4.95l-1.25 1.25zm-4.69 9.64a2 2 0 010-2.83l2.5-2.5a2 2 0 012.83 0 .75.75 0 001.06-1.06 3.5 3.5 0 00-4.95 0l-2.5 2.5a3.5 3.5 0 004.95 4.95l1.25-1.25a.75.75 0 00-1.06-1.06l-1.25 1.25a2 2 0 01-2.83 0z"/>
+              </svg>
+              Share
+            </button>
+          </div>
+          <div class="preview-content">
+            {{ isRawQueryMode() ? buildReadableQuery() : searchQuery().rawQuery }}
+          </div>
         </div>
       }
       
       @if (validationErrors().length > 0) {
         <div class="validation-errors">
           @for (error of validationErrors(); track error.field) {
-            <div class="error">{{ error.message }}</div>
+            <div class="error" [class]="getErrorSeverityClass(error)" 
+                 [title]="getErrorTooltip(error)">
+              <span class="error-icon">{{ getErrorIcon(error) }}</span>
+              <span class="error-message">{{ error.message }}</span>
+            </div>
           }
         </div>
       }
     </div>
+
+    <!-- Search History Dropdown -->
+    <app-search-history-dropdown
+      [isOpen]="showHistoryDropdown()"
+      (select)="onHistorySelect($event)"
+      (close)="closeHistoryDropdown()">
+    </app-search-history-dropdown>
+    
+    <!-- Template Manager Modal -->
+    <app-template-manager
+      [isOpen]="showTemplateManager()"
+      (closed)="closeTemplateManager()"
+      (templateSelected)="onTemplateManagerSelect($event)">
+    </app-template-manager>
 
     <!-- Search Definition Modal -->
     @if (isDefinitionModalOpen()) {
@@ -98,9 +285,24 @@ import { SearchConfigurationService, SearchValidationService } from '../services
   `,
   styleUrl: './search.component.scss'
 })
-export class SearchComponent {
+export class SearchComponent implements OnInit, OnDestroy {
   private configService = inject(SearchConfigurationService);
   private validationService = inject(SearchValidationService);
+  private queryParserService = inject(QueryParserService);
+  private urlSyncService = inject(UrlSyncService);
+  private historyService = inject(SearchHistoryService);
+  private dragDropService = inject(DragDropService);
+  private templatesService = inject(SearchTemplatesService);
+  private suggestionsService = inject(SearchSuggestionsService);
+  protected bulkOperationsService = inject(BulkOperationsService);
+  private extendedTemplatesService = inject(ExtendedTemplatesService);
+
+  // Subscriptions
+  private urlSubscription?: Subscription;
+
+  @ViewChild('searchInput') searchInputRef!: ElementRef<HTMLInputElement>;
+  @ViewChild('rawQueryTextarea') rawQueryTextareaRef!: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('searchTagsContainer') searchTagsContainerRef!: ElementRef<HTMLDivElement>;
 
   // Inputs
   readonly config = input.required<SearchConfiguration>();
@@ -113,15 +315,29 @@ export class SearchComponent {
   protected readonly selectedSuggestionIndex = signal<number>(0);
   protected readonly isDefinitionModalOpen = signal<boolean>(false);
   protected readonly editingCriteria = signal<SearchCriteria | null>(null);
+  protected readonly isRawQueryMode = signal<boolean>(false);
+  protected readonly rawQueryInput = signal<string>('');
+  protected readonly showHistoryDropdown = signal<boolean>(false);
+  protected readonly showTemplatesDropdown = signal<boolean>(false);
+  protected readonly showTemplateManager = signal<boolean>(false);
+  protected readonly currentLogicalOperator = signal<LogicalOperator>(LogicalOperator.AND);
   
   // Computed values
   protected readonly searchQuery = computed(() => {
+    const criteria = this.isRawQueryMode() 
+      ? this.queryParserService.parseRawQuery(this.rawQueryInput(), this.config().availableTypes)
+      : this.searchCriteria();
+    
     const query: SearchQuery = {
-      criteria: this.searchCriteria(),
-      isValid: this.searchCriteria().every(c => c.isValid)
+      criteria,
+      rawQuery: this.isRawQueryMode() 
+        ? this.rawQueryInput() 
+        : this.queryParserService.generateRawQuery(criteria, this.currentLogicalOperator()),
+      isValid: criteria.every(c => c.isValid)
     };
     
-    return this.validationService.validateQuery(query).isValid ? query : { ...query, isValid: false };
+    const validationResult = this.validationService.validateQueryWithLogicalOperator(query, this.currentLogicalOperator());
+    return validationResult.isValid ? query : { ...query, isValid: false };
   });
   
   protected readonly filteredTypes = computed(() => {
@@ -135,32 +351,151 @@ export class SearchComponent {
   });
   
   protected readonly validationErrors = computed(() => {
-    return this.validationService.validateQuery(this.searchQuery()).errors;
+    return this.validationService.validateQueryWithLogicalOperator(this.searchQuery(), this.currentLogicalOperator()).errors;
   });
+
+  protected getSuggestionContext() {
+    return untracked(() => {
+      return {
+        currentCriteria: this.searchCriteria(),
+        currentInput: this.currentInput(),
+        searchType: this.getActiveSearchType(),
+        recentSearches: this.historyService.getRecentSearches(10),
+        availableTypes: this.config().availableTypes,
+        position: this.currentInput().length
+      };
+    });
+  }
 
   // Outputs
   readonly queryChanged = output<SearchQuery>();
   readonly criteriaChanged = output<SearchCriteria[]>();
+  
+  private keyboardListener?: (event: KeyboardEvent) => void;
+
+  ngOnInit(): void {
+    this.setupKeyboardShortcuts();
+    this.loadFromUrl();
+    this.subscribeToUrlChanges();
+  }
+  
+  ngOnDestroy(): void {
+    if (this.keyboardListener) {
+      document.removeEventListener('keydown', this.keyboardListener);
+    }
+    
+    // Unsubscribe from URL changes
+    if (this.urlSubscription) {
+      this.urlSubscription.unsubscribe();
+    }
+  }
+  
+  private setupKeyboardShortcuts(): void {
+    this.keyboardListener = (event: KeyboardEvent) => {
+      // Ctrl+K or Cmd+K to focus search
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        this.focusSearchInput();
+      }
+      
+      // Escape key handling
+      if (event.key === 'Escape') {
+        if (this.isDefinitionModalOpen()) {
+          this.onDefinitionClose();
+        } else if (this.showTemplateManager()) {
+          this.closeTemplateManager();
+        } else if (this.showTemplatesDropdown()) {
+          this.closeTemplatesDropdown();
+        } else if (this.showHistoryDropdown()) {
+          this.closeHistoryDropdown();
+        } else if (this.showSuggestions()) {
+          this.showSuggestions.set(false);
+        } else if (this.searchCriteria().length > 0 || this.rawQueryInput().trim()) {
+          this.clearSearch();
+        }
+      }
+      
+      // / to focus search (like GitHub)
+      if (event.key === '/' && !this.isInputFocused()) {
+        event.preventDefault();
+        this.focusSearchInput();
+      }
+    };
+    
+    document.addEventListener('keydown', this.keyboardListener);
+  }
+  
+  private focusSearchInput(): void {
+    if (this.isRawQueryMode() && this.rawQueryTextareaRef) {
+      this.rawQueryTextareaRef.nativeElement.focus();
+    } else if (this.searchInputRef) {
+      this.searchInputRef.nativeElement.focus();
+    }
+  }
+  
+  private isInputFocused(): boolean {
+    const activeElement = document.activeElement;
+    return activeElement instanceof HTMLInputElement || 
+           activeElement instanceof HTMLTextAreaElement ||
+           activeElement instanceof HTMLSelectElement;
+  }
+  
+  private clearSearch(): void {
+    if (this.isRawQueryMode()) {
+      this.rawQueryInput.set('');
+      if (this.rawQueryTextareaRef) {
+        this.rawQueryTextareaRef.nativeElement.value = '';
+      }
+    } else {
+      this.searchCriteria.set([]);
+      this.currentInput.set('');
+      if (this.searchInputRef) {
+        this.searchInputRef.nativeElement.value = '';
+      }
+    }
+    this.emitChanges();
+  }
 
   onFocus(): void {
-    this.isFocused.set(true);
-    this.showSuggestions.set(true);
+    untracked(() => {
+      this.isFocused.set(true);
+      this.showSuggestions.set(true);
+    });
   }
   
   onBlur(): void {
     setTimeout(() => {
-      this.isFocused.set(false);
-      this.showSuggestions.set(false);
+      untracked(() => {
+        this.isFocused.set(false);
+        this.showSuggestions.set(false);
+      });
     }, 200);
   }
   
   onInput(event: Event): void {
     const target = event.target as HTMLInputElement;
-    this.currentInput.set(target.value);
     
-    if (target.value.length > 0) {
-      this.showSuggestions.set(true);
-    }
+    // Use untracked to prevent signal updates during computed evaluation
+    untracked(() => {
+      this.currentInput.set(target.value);
+      
+      if (target.value.length > 0) {
+        this.showSuggestions.set(true);
+      } else {
+        this.showSuggestions.set(false);
+      }
+      
+      // Track typing behavior for suggestions
+      try {
+        this.suggestionsService.trackBehavior('typing', {
+          input: target.value,
+          length: target.value.length,
+          criteriaCount: this.searchCriteria().length
+        });
+      } catch (error) {
+        console.warn('Error tracking behavior:', error);
+      }
+    });
   }
   
   onKeyDown(event: KeyboardEvent): void {
@@ -197,6 +532,11 @@ export class SearchComponent {
   }
   
   selectSearchType(type: SearchType): void {
+    if (!type || !type.supportedOperators || type.supportedOperators.length === 0) {
+      console.error('Invalid SearchType:', type);
+      return;
+    }
+    
     const defaultOperator = type.supportedOperators.find(
       op => op.type === type.defaultOperator
     ) || type.supportedOperators[0];
@@ -212,6 +552,11 @@ export class SearchComponent {
     this.addCriteria(newCriteria);
     this.currentInput.set('');
     this.showSuggestions.set(false);
+    
+    // Clear the physical input field
+    if (this.searchInputRef) {
+      this.searchInputRef.nativeElement.value = '';
+    }
   }
   
   addCriteria(criteria: SearchCriteria): void {
@@ -286,17 +631,510 @@ export class SearchComponent {
   }
   
   protected buildReadableQuery(): string {
+    const operator = this.currentLogicalOperator() === LogicalOperator.AND ? ' AND ' : ' OR ';
     return this.searchCriteria()
       .filter(c => c.isValid)
       .map(c => {
         const value = c.operator.requiresValue ? ` ${c.displayValue || c.value}` : '';
         return `${c.type.label} ${c.operator.label}${value}`;
       })
-      .join(' AND ');
+      .join(operator);
   }
   
-  private emitChanges(): void {
+  // Raw Query Mode Methods
+  protected switchToRawQueryMode(): void {
+    // Convert current criteria to raw query when switching modes
+    if (this.searchCriteria().length > 0) {
+      const rawQuery = this.queryParserService.generateRawQuery(this.searchCriteria(), this.currentLogicalOperator());
+      this.rawQueryInput.set(rawQuery);
+    }
+    this.isRawQueryMode.set(true);
+    this.showSuggestions.set(false);
+  }
+  
+  protected switchToVisualMode(): void {
+    // Parse raw query and convert to criteria when switching modes
+    if (this.rawQueryInput().trim()) {
+      const parsedCriteria = this.queryParserService.parseRawQuery(
+        this.rawQueryInput(), 
+        this.config().availableTypes
+      );
+      this.searchCriteria.set(parsedCriteria);
+    }
+    this.isRawQueryMode.set(false);
+  }
+  
+  protected onRawQueryInput(event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.rawQueryInput.set(target.value);
+    
+    // Auto-resize textarea
+    target.style.height = 'auto';
+    target.style.height = target.scrollHeight + 'px';
+    
+    // Real-time parsing for validation feedback
+    this.validateRawQuery();
+  }
+  
+  protected parseAndApplyRawQuery(): void {
+    const rawQuery = this.rawQueryInput().trim();
+    if (!rawQuery) return;
+    
+    const parsedCriteria = this.queryParserService.parseRawQuery(
+      rawQuery, 
+      this.config().availableTypes
+    );
+    
+    // Update visual mode with parsed criteria
+    this.searchCriteria.set(parsedCriteria);
+    this.emitChanges();
+  }
+  
+  private validateRawQuery(): void {
+    const isValid = this.queryParserService.isValidRawQuery(
+      this.rawQueryInput(),
+      this.config().availableTypes
+    );
+    
+    // You could add visual feedback here
+    // For now, we'll rely on the computed searchQuery validation
+  }
+
+  // URL Synchronization Methods
+  private loadFromUrl(): void {
+    const urlState = this.urlSyncService.loadFromUrl();
+    if (urlState) {
+      // Set the mode first
+      this.isRawQueryMode.set(urlState.mode === 'raw');
+      
+      if (urlState.mode === 'raw') {
+        // Load raw query
+        this.rawQueryInput.set(urlState.query);
+      } else {
+        // Parse query and load as criteria
+        const parsedCriteria = this.queryParserService.parseRawQuery(
+          urlState.query,
+          this.config().availableTypes
+        );
+        this.searchCriteria.set(parsedCriteria);
+      }
+      
+      // Emit changes after loading from URL
+      this.emitChanges(false); // Don't sync back to URL immediately
+    }
+  }
+  
+  private syncToUrl(): void {
+    this.urlSyncService.syncToUrl(this.searchQuery(), this.isRawQueryMode());
+  }
+  
+  protected getShareableUrl(): string {
+    return this.urlSyncService.generateShareableUrl(this.searchQuery(), this.isRawQueryMode());
+  }
+  
+  private subscribeToUrlChanges(): void {
+    this.urlSubscription = this.urlSyncService.watchUrlChanges().subscribe(queryParams => {
+      // Parse URL params manually (similar to how UrlSyncService does it)
+      const q = queryParams['q'] ? decodeURIComponent(queryParams['q']) : null;
+      const mode = queryParams['mode'] as 'visual' | 'raw' || 'visual';
+      
+      if (q) {
+        // Prevent infinite loops by checking if the URL state is different from current state
+        const currentQuery = this.isRawQueryMode() 
+          ? this.rawQueryInput()
+          : this.queryParserService.generateRawQuery(this.searchCriteria());
+        
+        if (q !== currentQuery || (mode === 'raw') !== this.isRawQueryMode()) {
+          this.isRawQueryMode.set(mode === 'raw');
+          
+          if (mode === 'raw') {
+            this.rawQueryInput.set(q);
+          } else {
+            const parsedCriteria = this.queryParserService.parseRawQuery(
+              q,
+              this.config().availableTypes
+            );
+            this.searchCriteria.set(parsedCriteria);
+          }
+        }
+      }
+    });
+  }
+  
+  protected copyShareableUrl(): void {
+    const url = this.getShareableUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      // Could show a toast notification here
+      console.log('Shareable URL copied to clipboard:', url);
+    }).catch(err => {
+      console.error('Failed to copy URL to clipboard:', err);
+    });
+  }
+
+  private emitChanges(shouldSyncUrl: boolean = true): void {
     this.criteriaChanged.emit(this.searchCriteria());
     this.queryChanged.emit(this.searchQuery());
+    
+    // Add to history when changes occur (except when loading from URL)
+    if (shouldSyncUrl) {
+      this.addToHistory();
+      this.syncToUrl();
+      
+      // Track search execution for behavior learning
+      try {
+        untracked(() => {
+          this.suggestionsService.trackBehavior('search_executed', {
+            criteria: this.searchCriteria(),
+            rawQuery: this.searchQuery().rawQuery,
+            isValid: this.searchQuery().isValid,
+            mode: this.isRawQueryMode() ? 'raw' : 'visual'
+          });
+        });
+      } catch (error) {
+        console.warn('Error tracking search execution:', error);
+      }
+    }
   }
+
+  // Smart Suggestions Methods
+  protected getActiveSearchType(): SearchType | undefined {
+    // Logic to determine which search type is being actively edited
+    // For now, we'll return undefined - could be enhanced to detect context
+    return undefined;
+  }
+
+  protected onSmartSuggestionSelect(suggestion: SuggestionItem): void {
+    switch (suggestion.type) {
+      case 'criteria':
+        if (suggestion.value && typeof suggestion.value === 'object' && 'id' in suggestion.value) {
+          const searchType = suggestion.value as SearchType;
+          // Validate that it's a complete SearchType object
+          if (searchType.id && searchType.supportedOperators && Array.isArray(searchType.supportedOperators)) {
+            this.selectSearchType(searchType);
+          } else {
+            console.error('Invalid SearchType in suggestion:', suggestion.value);
+          }
+        }
+        break;
+        
+      case 'value':
+        this.currentInput.set(String(suggestion.value));
+        break;
+        
+      case 'completion':
+        this.currentInput.set(String(suggestion.value));
+        break;
+        
+      case 'template':
+        if (suggestion.value && typeof suggestion.value === 'object' && 'query' in suggestion.value) {
+          this.onTemplateSelect(suggestion.value as SearchTemplate);
+        }
+        break;
+        
+      default:
+        // Handle other suggestion types
+        console.log('Unhandled suggestion type:', suggestion.type, suggestion.value);
+        break;
+    }
+    
+    this.hideSuggestions();
+  }
+
+  protected hideSuggestions(): void {
+    this.showSuggestions.set(false);
+  }
+
+  // Error display helper methods
+  protected getErrorSeverityClass(error: any): string {
+    const severity = this.validationService.getErrorSeverity(error);
+    return `error-${severity}`;
+  }
+  
+  protected getErrorIcon(error: any): string {
+    return this.validationService.getErrorIcon(error);
+  }
+  
+  protected getErrorTooltip(error: any): string {
+    const severity = this.validationService.getErrorSeverity(error);
+    const typeMap: { [key: string]: string } = {
+      'error': 'This field has an error that must be fixed',
+      'warning': 'This field has a potential issue',
+      'info': 'Additional information about this field'
+    };
+    return typeMap[severity] || 'Validation message';
+  }
+
+  // Search History Methods
+  protected toggleHistoryDropdown(): void {
+    if (this.showHistoryDropdown()) {
+      this.closeHistoryDropdown();
+    } else {
+      this.openHistoryDropdown();
+    }
+  }
+  
+  private openHistoryDropdown(): void {
+    // Close suggestions dropdown when opening history
+    this.showSuggestions.set(false);
+    this.showHistoryDropdown.set(true);
+  }
+  
+  protected closeHistoryDropdown(): void {
+    this.showHistoryDropdown.set(false);
+  }
+  
+  protected onHistorySelect(entry: SearchHistoryEntry): void {
+    // Set the search mode first
+    this.isRawQueryMode.set(entry.searchMode === 'raw');
+    
+    if (entry.searchMode === 'raw') {
+      // Load raw query
+      this.rawQueryInput.set(entry.rawQuery);
+    } else {
+      // Load criteria
+      this.searchCriteria.set([...entry.query.criteria]);
+    }
+    
+    this.closeHistoryDropdown();
+    
+    // Emit changes and focus input
+    this.emitChanges();
+    setTimeout(() => {
+      this.focusSearchInput();
+    }, 50);
+  }
+  
+  private addToHistory(): void {
+    const query = this.searchQuery();
+    if (query.isValid && (query.criteria.length > 0 || (query.rawQuery && query.rawQuery.trim()))) {
+      this.historyService.addToHistory(query, this.isRawQueryMode() ? 'raw' : 'visual');
+    }
+  }
+
+  // Search Templates Methods
+  protected toggleTemplatesDropdown(): void {
+    if (this.showTemplatesDropdown()) {
+      this.closeTemplatesDropdown();
+    } else {
+      this.openTemplatesDropdown();
+    }
+  }
+  
+  private openTemplatesDropdown(): void {
+    // Close other dropdowns when opening templates
+    this.showSuggestions.set(false);
+    this.closeHistoryDropdown();
+    this.showTemplatesDropdown.set(true);
+  }
+  
+  protected closeTemplatesDropdown(): void {
+    this.showTemplatesDropdown.set(false);
+  }
+  
+  protected onTemplateSelect(template: SearchTemplate): void {
+    // Set the search mode first
+    this.isRawQueryMode.set(template.searchMode === 'raw');
+    
+    if (template.searchMode === 'raw') {
+      // Load raw query
+      this.rawQueryInput.set(template.query.rawQuery || '');
+    } else {
+      // Load criteria
+      this.searchCriteria.set([...template.query.criteria]);
+    }
+    
+    this.closeTemplatesDropdown();
+    
+    // Emit changes and focus input
+    this.emitChanges();
+    setTimeout(() => {
+      this.focusSearchInput();
+    }, 50);
+  }
+
+  // Drag and Drop Methods for Search Criteria
+  protected onCriteriaDragStart(event: { item: SearchCriteria; index: number; event: DragEvent }): void {
+    this.dragDropService.startDrag(event.item, event.index, event.event);
+    
+    // Close other dropdowns during drag
+    this.showSuggestions.set(false);
+    this.closeHistoryDropdown();
+  }
+
+  protected onCriteriaDragOver(event: { index: number; event: DragEvent }): void {
+    this.dragDropService.onDragOver(event.index, event.event);
+  }
+
+  protected onCriteriaDrop(event: { index: number; event: DragEvent }): void {
+    const currentCriteria = this.searchCriteria();
+    const reorderedCriteria = this.dragDropService.onDrop(event.index, currentCriteria);
+    
+    if (reorderedCriteria !== currentCriteria) {
+      // Animate the reorder if container is available
+      if (this.searchTagsContainerRef) {
+        const dragState = this.dragDropService.getDragState();
+        if (dragState.draggedIndex !== -1) {
+          this.dragDropService.animateReorder(
+            this.searchTagsContainerRef.nativeElement,
+            dragState.draggedIndex,
+            event.index
+          );
+        }
+      }
+      
+      this.searchCriteria.set(reorderedCriteria);
+      this.emitChanges();
+    }
+  }
+
+  protected onCriteriaDragEnd(): void {
+    this.dragDropService.endDrag();
+  }
+
+  // Bulk Operations Methods
+  protected toggleMultiSelectMode(): void {
+    this.bulkOperationsService.toggleMultiSelectMode();
+    
+    // Close other dropdowns when entering multi-select mode
+    if (this.bulkOperationsService.getSelectionState()().isMultiSelectMode) {
+      this.showSuggestions.set(false);
+      this.closeHistoryDropdown();
+      this.closeTemplatesDropdown();
+    }
+  }
+
+  protected exitMultiSelectMode(): void {
+    this.bulkOperationsService.exitMultiSelectMode();
+  }
+
+  protected onCriteriaSelect(event: { id: string; index: number; shiftKey?: boolean; ctrlKey?: boolean }): void {
+    if (!this.bulkOperationsService.getSelectionState()().isMultiSelectMode) {
+      return;
+    }
+
+    if (event.shiftKey) {
+      // Range selection
+      this.bulkOperationsService.selectRange(event.id, event.index, this.searchCriteria());
+    } else if (event.ctrlKey) {
+      // Toggle individual selection
+      this.bulkOperationsService.toggleSelection(event.id, event.index);
+    } else {
+      // Single selection (clear others first)
+      this.bulkOperationsService.deselectAll();
+      this.bulkOperationsService.toggleSelection(event.id, event.index);
+    }
+  }
+
+  protected getSelectedCriteria(): SearchCriteria[] {
+    const selectedIds = this.bulkOperationsService.getSelectionState()().selectedIds;
+    return this.searchCriteria().filter(criteria => selectedIds.has(criteria.id));
+  }
+
+  protected async onBulkOperation(event: { operation: any; options?: any }): Promise<void> {
+    const selectedCriteria = this.getSelectedCriteria();
+    const allCriteria = this.searchCriteria();
+    
+    try {
+      const result = await this.bulkOperationsService.executeBulkOperation(
+        event.operation,
+        selectedCriteria,
+        allCriteria,
+        event.options
+      );
+      
+      if (result.success) {
+        // Update the criteria with the result
+        this.searchCriteria.set(result.result);
+        this.emitChanges();
+        
+        // Show success message (could implement toast/notification later)
+        console.log('Bulk operation completed:', result.message);
+      } else {
+        // Handle error (could implement error notification later)
+        console.error('Bulk operation failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Bulk operation error:', error);
+    }
+  }
+
+  protected clearAllCriteria(): void {
+    this.searchCriteria.set([]);
+    this.emitChanges();
+    
+    // Exit multi-select mode if active
+    if (this.bulkOperationsService.getSelectionState()().isMultiSelectMode) {
+      this.bulkOperationsService.exitMultiSelectMode();
+    }
+  }
+
+  // Logical Operator Methods
+  protected setLogicalOperator(operator: 'AND' | 'OR'): void {
+    const logicalOp = operator === 'AND' ? LogicalOperator.AND : LogicalOperator.OR;
+    this.currentLogicalOperator.set(logicalOp);
+    
+    // Emit changes to update the query
+    this.emitChanges();
+  }
+
+  // Extended Templates Methods
+  protected onExtendedTemplateSelected(template: ExtendedSearchTemplate): void {
+    // Set the search mode first
+    this.isRawQueryMode.set(template.searchMode === 'raw');
+    
+    if (template.searchMode === 'raw') {
+      // Load raw query
+      this.rawQueryInput.set(template.query.rawQuery || '');
+    } else {
+      // Load criteria
+      this.searchCriteria.set([...template.query.criteria]);
+    }
+    
+    // Emit changes and focus input
+    this.emitChanges();
+    setTimeout(() => {
+      this.focusSearchInput();
+    }, 50);
+  }
+
+  protected onPresetApplied(preset: TemplatePreset): void {
+    // Convert preset to search query and apply it
+    this.isRawQueryMode.set(preset.searchMode === 'raw');
+    
+    if (preset.searchMode === 'raw') {
+      this.rawQueryInput.set(preset.query.rawQuery || '');
+    } else {
+      this.searchCriteria.set([...preset.query.criteria]);
+    }
+    
+    // Emit changes and focus input
+    this.emitChanges();
+    setTimeout(() => {
+      this.focusSearchInput();
+    }, 50);
+  }
+
+  protected onTemplateCreated(template: ExtendedSearchTemplate): void {
+    // Template was successfully created - could show a notification
+    console.log('Template created:', template.name);
+  }
+
+  protected openTemplateManager(): void {
+    this.showTemplateManager.set(true);
+    
+    // Close other dropdowns when opening template manager
+    this.showSuggestions.set(false);
+    this.closeHistoryDropdown();
+  }
+
+  protected closeTemplateManager(): void {
+    this.showTemplateManager.set(false);
+  }
+
+  protected onTemplateManagerSelect(template: ExtendedSearchTemplate): void {
+    // Apply the selected template
+    this.onExtendedTemplateSelected(template);
+    this.closeTemplateManager();
+  }
+
 }
