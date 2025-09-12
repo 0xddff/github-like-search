@@ -231,8 +231,7 @@ export class TemplateSharingComponent {
   protected copyShareLink(input: HTMLInputElement): void {
     input.select();
     navigator.clipboard.writeText(input.value).then(() => {
-      console.log('Share link copied to clipboard');
-      // Could show a toast notification here
+      // Share link copied to clipboard successfully
     }).catch(err => {
       console.error('Failed to copy link:', err);
     });

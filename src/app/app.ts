@@ -22,10 +22,10 @@ export class App implements OnInit {
   }
 
   onQueryChanged(query: any) {
-    console.log('Search query changed:', query);
+    // Query change handled by search component
   }
 
   onCriteriaChanged(criteria: any[]) {
-    console.log('Search criteria changed:', criteria);
+    // Criteria change handled by search component
   }
 }

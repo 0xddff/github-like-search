@@ -63,7 +63,7 @@
   
   &:hover,
   &.highlighted {
-    background: linear-gradient(90deg, #f6f8fa 0%, #e1f5fe 100%);
+    background: #f6f8fa;
     border-left: 3px solid #0969da;
     padding-left: 9px; // Adjust for border
   }
@@ -75,35 +75,35 @@
   // Type-specific styling
   &.suggestion-criteria {
     &:hover, &.highlighted {
-      background: linear-gradient(90deg, #f0f6ff 0%, #e1f5fe 100%);
+      background: #f0f6ff;
       border-left-color: #0969da;
     }
   }
   
   &.suggestion-value {
     &:hover, &.highlighted {
-      background: linear-gradient(90deg, #f0fff4 0%, #e6ffed 100%);
+      background: #f0fff4;
       border-left-color: #1f883d;
     }
   }
   
   &.suggestion-operator {
     &:hover, &.highlighted {
-      background: linear-gradient(90deg, #fff8e1 0%, #fffbf0 100%);
+      background: #fff8e1;
       border-left-color: #fb8500;
     }
   }
   
   &.suggestion-template {
     &:hover, &.highlighted {
-      background: linear-gradient(90deg, #f3e8ff 0%, #faf5ff 100%);
+      background: #f3e8ff;
       border-left-color: #8250df;
     }
   }
   
   &.suggestion-completion {
     &:hover, &.highlighted {
-      background: linear-gradient(90deg, #fff0f6 0%, #fff5f8 100%);
+      background: #fff0f6;
       border-left-color: #d0418b;
     }
   }
@@ -162,8 +162,8 @@
 
 .suggestion-label {
   font-size: 13px;
-  color: #1f2328;
-  font-weight: 500;
+  color: #24292f;
+  font-weight: 600;
   margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,8 +171,8 @@
 }
 
 .suggestion-description {
-  font-size: 11px;
-  color: #656d76;
+  font-size: 12px;
+  color: #57606a;
   margin-bottom: 2px;
   line-height: 1.4;
   overflow: hidden;
@@ -300,7 +300,7 @@
 
 // Smart suggestions enhance regular suggestions
 .suggestion-item {
-  // Add subtle animations
+  // Simplified hover indication
   &::before {
     content: '';
     position: absolute;
@@ -308,58 +308,46 @@
     top: 0;
     bottom: 0;
     width: 0;
-    background: linear-gradient(135deg, rgba(9, 105, 218, 0.1) 0%, rgba(9, 105, 218, 0.05) 100%);
-    transition: width 0.3s ease;
+    background: rgba(9, 105, 218, 0.05);
+    transition: width 0.15s ease;
   }
   
   &:hover::before,
   &.highlighted::before {
-    width: 100%;
+    width: 3px;
   }
   
-  // Add confidence indicators
-  &[data-category="patterns"] {
-    .suggestion-icon {
-      position: relative;
-      
-      &::after {
-        content: '◆';
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        font-size: 8px;
-        color: #0969da;
-        background: white;
-        border-radius: 50%;
-        width: 10px;
-        height: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    }
+  // Simplified confidence indicators
+  &[data-category="patterns"] .suggestion-icon::after {
+    content: '◆';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    font-size: 8px;
+    color: #0969da;
+    background: white;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
-  &[data-category="templates"] {
-    .suggestion-icon {
-      position: relative;
-      
-      &::after {
-        content: '★';
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        font-size: 8px;
-        color: #8250df;
-        background: white;
-        border-radius: 50%;
-        width: 10px;
-        height: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-    }
+  &[data-category="templates"] .suggestion-icon::after {
+    content: '★';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    font-size: 8px;
+    color: #8250df;
+    background: white;
+    border-radius: 50%;
+    width: 10px;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -418,7 +406,7 @@
   }
 }
 
-// Dark mode support
+// Dark mode support - simplified
 @media (prefers-color-scheme: dark) {
   .smart-suggestions-dropdown {
     background: #21262d;
@@ -427,21 +415,17 @@
   }
   
   .suggestions-header {
-    background: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+    background: #1f6feb;
     color: #0d1117;
   }
   
   .suggestion-item {
-    border-bottom-color: #21262d;
+    border-bottom-color: #30363d;
     
     &:hover,
     &.highlighted {
-      background: linear-gradient(90deg, #161b22 0%, #0d1117 100%);
+      background: #161b22;
       border-left-color: #58a6ff;
-    }
-    
-    &::before {
-      background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(88, 166, 255, 0.05) 100%);
     }
   }
   
@@ -453,90 +437,9 @@
     color: #8b949e;
   }
   
-  .suggestion-meta {
-    color: #6e7681;
-  }
-  
-  .suggestion-score {
-    background: #30363d;
-    color: #8b949e;
-  }
-  
-  .suggestion-icon {
-    background: #30363d;
-    color: #8b949e;
-    
-    .suggestion-criteria & {
-      background: rgba(88, 166, 255, 0.15);
-      color: #58a6ff;
-    }
-    
-    .suggestion-value & {
-      background: rgba(46, 160, 67, 0.15);
-      color: #2ea043;
-    }
-    
-    .suggestion-operator & {
-      background: rgba(255, 181, 0, 0.15);
-      color: #ffb500;
-    }
-    
-    .suggestion-template & {
-      background: rgba(163, 113, 247, 0.15);
-      color: #a371f7;
-    }
-    
-    .suggestion-completion & {
-      background: rgba(248, 81, 73, 0.15);
-      color: #f85149;
-    }
-  }
-  
-  .suggestion-badge {
-    &.badge-criteria {
-      background: rgba(88, 166, 255, 0.15);
-      color: #58a6ff;
-    }
-    
-    &.badge-value {
-      background: rgba(46, 160, 67, 0.15);
-      color: #2ea043;
-    }
-    
-    &.badge-operator {
-      background: rgba(255, 181, 0, 0.15);
-      color: #ffb500;
-    }
-    
-    &.badge-template {
-      background: rgba(163, 113, 247, 0.15);
-      color: #a371f7;
-    }
-    
-    &.badge-completion {
-      background: rgba(248, 81, 73, 0.15);
-      color: #f85149;
-    }
-  }
-  
   .suggestions-footer {
     background: #161b22;
     border-top-color: #30363d;
     color: #8b949e;
-    
-    kbd {
-      background: #21262d;
-      border-color: #30363d;
-      color: #f0f6fc;
-    }
-  }
-  
-  .category-separator {
-    background: #30363d;
-    
-    .category-label {
-      background: #21262d;
-      color: #6e7681;
-    }
   }
 }

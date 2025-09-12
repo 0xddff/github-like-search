@@ -246,6 +246,24 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
         </div>
       }
       
+      @if (showParsingWarning()) {
+        <div class="parsing-warning">
+          <div class="warning-content">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="warning-icon">
+              <path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575L6.457 1.047zM8 5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5A.75.75 0 0 1 8 5zm1 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+            </svg>
+            <span class="warning-message">
+              Some parts of your raw query couldn't be parsed. The visual mode shows only the recognized criteria.
+            </span>
+            <button class="warning-dismiss" (click)="showParsingWarning.set(false)" type="button" title="Dismiss">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+
       @if (validationErrors().length > 0) {
         <div class="validation-errors">
           @for (error of validationErrors(); track error.field) {
@@ -318,8 +336,8 @@ export class SearchComponent implements OnInit, OnDestroy {
   protected readonly isRawQueryMode = signal<boolean>(false);
   protected readonly rawQueryInput = signal<string>('');
   protected readonly showHistoryDropdown = signal<boolean>(false);
-  protected readonly showTemplatesDropdown = signal<boolean>(false);
   protected readonly showTemplateManager = signal<boolean>(false);
+  protected readonly showParsingWarning = signal<boolean>(false);
   protected readonly currentLogicalOperator = signal<LogicalOperator>(LogicalOperator.AND);
   
   // Computed values
@@ -333,11 +351,13 @@ export class SearchComponent implements OnInit, OnDestroy {
       rawQuery: this.isRawQueryMode() 
         ? this.rawQueryInput() 
         : this.queryParserService.generateRawQuery(criteria, this.currentLogicalOperator()),
-      isValid: criteria.every(c => c.isValid)
+      isValid: true // Will be updated by validation
     };
     
+    // Single validation call - more efficient
     const validationResult = this.validationService.validateQueryWithLogicalOperator(query, this.currentLogicalOperator());
-    return validationResult.isValid ? query : { ...query, isValid: false };
+    query.isValid = validationResult.isValid;
+    return query;
   });
   
   protected readonly filteredTypes = computed(() => {
@@ -404,8 +424,6 @@ export class SearchComponent implements OnInit, OnDestroy {
           this.onDefinitionClose();
         } else if (this.showTemplateManager()) {
           this.closeTemplateManager();
-        } else if (this.showTemplatesDropdown()) {
-          this.closeTemplatesDropdown();
         } else if (this.showHistoryDropdown()) {
           this.closeHistoryDropdown();
         } else if (this.showSuggestions()) {
@@ -493,7 +511,7 @@ export class SearchComponent implements OnInit, OnDestroy {
           criteriaCount: this.searchCriteria().length
         });
       } catch (error) {
-        console.warn('Error tracking behavior:', error);
+        // Ignore tracking errors to prevent console noise
       }
     });
   }
@@ -533,7 +551,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   
   selectSearchType(type: SearchType): void {
     if (!type || !type.supportedOperators || type.supportedOperators.length === 0) {
-      console.error('Invalid SearchType:', type);
+      // Invalid SearchType - skip selection
       return;
     }
     
@@ -655,13 +673,26 @@ export class SearchComponent implements OnInit, OnDestroy {
   protected switchToVisualMode(): void {
     // Parse raw query and convert to criteria when switching modes
     if (this.rawQueryInput().trim()) {
+      const rawQuery = this.rawQueryInput().trim();
       const parsedCriteria = this.queryParserService.parseRawQuery(
-        this.rawQueryInput(), 
+        rawQuery, 
         this.config().availableTypes
       );
+      
+      // Check if parsing was successful by comparing input tokens vs parsed criteria
+      const inputTokens = rawQuery.split(/\s+/).filter(token => token.includes(':'));
+      const parsedCount = parsedCriteria.length;
+      
+      if (inputTokens.length > parsedCount && parsedCount > 0) {
+        // Some tokens couldn't be parsed - show warning
+        this.showParsingWarning.set(true);
+        setTimeout(() => this.showParsingWarning.set(false), 5000);
+      }
+      
       this.searchCriteria.set(parsedCriteria);
     }
     this.isRawQueryMode.set(false);
+    this.emitChanges();
   }
   
   protected onRawQueryInput(event: Event): void {
@@ -765,9 +796,8 @@ export class SearchComponent implements OnInit, OnDestroy {
     const url = this.getShareableUrl();
     navigator.clipboard.writeText(url).then(() => {
       // Could show a toast notification here
-      console.log('Shareable URL copied to clipboard:', url);
     }).catch(err => {
-      console.error('Failed to copy URL to clipboard:', err);
+      // Silently handle clipboard errors - user can still copy the URL manually
     });
   }
 
@@ -791,7 +821,7 @@ export class SearchComponent implements OnInit, OnDestroy {
           });
         });
       } catch (error) {
-        console.warn('Error tracking search execution:', error);
+        // Ignore tracking errors to prevent console noise
       }
     }
   }
@@ -812,7 +842,7 @@ export class SearchComponent implements OnInit, OnDestroy {
           if (searchType.id && searchType.supportedOperators && Array.isArray(searchType.supportedOperators)) {
             this.selectSearchType(searchType);
           } else {
-            console.error('Invalid SearchType in suggestion:', suggestion.value);
+            // Invalid SearchType in suggestion - skip
           }
         }
         break;
@@ -833,7 +863,7 @@ export class SearchComponent implements OnInit, OnDestroy {
         
       default:
         // Handle other suggestion types
-        console.log('Unhandled suggestion type:', suggestion.type, suggestion.value);
+        // Unhandled suggestion type - could implement additional types here
         break;
     }
     
@@ -911,26 +941,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Search Templates Methods
-  protected toggleTemplatesDropdown(): void {
-    if (this.showTemplatesDropdown()) {
-      this.closeTemplatesDropdown();
-    } else {
-      this.openTemplatesDropdown();
-    }
-  }
-  
-  private openTemplatesDropdown(): void {
-    // Close other dropdowns when opening templates
-    this.showSuggestions.set(false);
-    this.closeHistoryDropdown();
-    this.showTemplatesDropdown.set(true);
-  }
-  
-  protected closeTemplatesDropdown(): void {
-    this.showTemplatesDropdown.set(false);
-  }
-  
+  // Search Templates Methods (Legacy - kept for backwards compatibility)
   protected onTemplateSelect(template: SearchTemplate): void {
     // Set the search mode first
     this.isRawQueryMode.set(template.searchMode === 'raw');
@@ -942,8 +953,6 @@ export class SearchComponent implements OnInit, OnDestroy {
       // Load criteria
       this.searchCriteria.set([...template.query.criteria]);
     }
-    
-    this.closeTemplatesDropdown();
     
     // Emit changes and focus input
     this.emitChanges();
@@ -999,7 +1008,6 @@ export class SearchComponent implements OnInit, OnDestroy {
     if (this.bulkOperationsService.getSelectionState()().isMultiSelectMode) {
       this.showSuggestions.set(false);
       this.closeHistoryDropdown();
-      this.closeTemplatesDropdown();
     }
   }
 
@@ -1048,13 +1056,11 @@ export class SearchComponent implements OnInit, OnDestroy {
         this.emitChanges();
         
         // Show success message (could implement toast/notification later)
-        console.log('Bulk operation completed:', result.message);
       } else {
         // Handle error (could implement error notification later)
-        console.error('Bulk operation failed:', result.message);
       }
     } catch (error) {
-      console.error('Bulk operation error:', error);
+      // Bulk operation error - could show user-friendly error message
     }
   }
 
@@ -1116,7 +1122,6 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   protected onTemplateCreated(template: ExtendedSearchTemplate): void {
     // Template was successfully created - could show a notification
-    console.log('Template created:', template.name);
   }
 
   protected openTemplateManager(): void {

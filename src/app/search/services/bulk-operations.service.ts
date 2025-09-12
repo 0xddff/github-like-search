@@ -502,9 +502,9 @@ export class BulkOperationsService {
 
     // Copy to clipboard
     navigator.clipboard.writeText(exportData).then(() => {
-      console.log('Bulk export copied to clipboard');
+      // Successfully copied to clipboard
     }).catch(err => {
-      console.warn('Failed to copy to clipboard:', err);
+      // Failed to copy to clipboard - handled silently
     });
 
     return Promise.resolve({

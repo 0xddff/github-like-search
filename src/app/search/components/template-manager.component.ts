@@ -465,7 +465,6 @@ export class TemplateManagerComponent {
 
   protected editTemplate(template: ExtendedSearchTemplate): void {
     // TODO: Open template editor
-    console.log('Edit template:', template);
     this.closeMenu();
   }
 
@@ -489,12 +488,10 @@ export class TemplateManagerComponent {
 
   protected showCreateTemplate(): void {
     // TODO: Open template creation dialog
-    console.log('Create new template');
   }
 
   protected showCreateGroup(): void {
     // TODO: Open group creation dialog
-    console.log('Create new group');
   }
 
   protected toggleTemplateMenu(templateId: string): void {

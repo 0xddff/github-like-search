@@ -203,9 +203,8 @@ export class SearchTemplatesInterfaceComponent {
       this.templateCreated.emit(template);
 
       // Could show a toast notification here
-      console.log('Search saved as template:', template.name);
     } catch (error) {
-      console.error('Failed to save search as template:', error);
+      // Failed to save template - could show user-friendly error message
     }
   }
 

@@ -14,6 +14,7 @@ import { DragDropService } from '../services/drag-drop.service';
          [class.draggable]="draggable()"
          [class]="getDragClasses().join(' ')"
          [draggable]="draggable()"
+         [title]="getTooltip()"
          (click)="onEdit()"
          (dragstart)="onDragStart($event)"
          (dragover)="onDragOver($event)"
@@ -30,6 +31,14 @@ import { DragDropService } from '../services/drag-drop.service';
         </div>
       }
       
+      @if (!criteria().isValid) {
+        <div class="tag-error-icon" title="Invalid criteria">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575L6.457 1.047zM8 5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5A.75.75 0 0 1 8 5zm1 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+          </svg>
+        </div>
+      }
+
       <span class="tag-content">
         <span class="tag-type">{{ criteria().type.label }}</span>
         <span class="tag-separator">:</span>
@@ -98,6 +107,34 @@ export class SearchTagComponent {
     }
     
     return String(value || '');
+  }
+
+  protected getTooltip(): string {
+    const criteria = this.criteria();
+    
+    if (!criteria.isValid) {
+      const baseMessage = `${criteria.type.label}: ${criteria.operator.label}`;
+      const value = this.displayValue();
+      
+      if (criteria.operator.requiresValue && (!criteria.value || criteria.value === '')) {
+        return `${baseMessage} - Missing required value. Click to edit.`;
+      }
+      
+      if (value) {
+        return `${baseMessage} "${value}" - Invalid criteria. Click to edit.`;
+      }
+      
+      return `${baseMessage} - Invalid criteria. Click to edit.`;
+    }
+    
+    const baseMessage = `${criteria.type.label}: ${criteria.operator.label}`;
+    const value = this.displayValue();
+    
+    if (value) {
+      return `${baseMessage} "${value}"${this.editable() ? ' - Click to edit' : ''}`;
+    }
+    
+    return `${baseMessage}${this.editable() ? ' - Click to edit' : ''}`;
   }
 
   protected onEdit(): void {

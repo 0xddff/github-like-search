@@ -291,12 +291,9 @@ export class BulkOperationsToolbarComponent {
 
   private showMessage(message: string, type: 'success' | 'error' | 'info'): void {
     // In a real implementation, this would show a toast notification
-    // For now, we'll use console and alert
     if (type === 'error') {
       alert(`Error: ${message}`);
-    } else {
-      console.log(`${type.toUpperCase()}: ${message}`);
-      // Could show a temporary message in the UI
     }
+    // Success and info messages handled silently for now
   }
 }

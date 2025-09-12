@@ -867,6 +867,7 @@
 }
 
 // Dark mode support
+// Dark mode support - simplified
 @media (prefers-color-scheme: dark) {
   .manager-modal {
     background: #21262d;
@@ -879,264 +880,22 @@
     border-bottom-color: #30363d;
   }
 
-  .manager-title {
-    color: #f0f6fc;
-  }
-
-  .manager-description {
-    color: #8b949e;
-  }
-
-  .header-action-btn {
-    background: #238636;
-    border-color: #238636;
-
-    &:hover {
-      background: #2ea043;
-      border-color: #2ea043;
-    }
-  }
-
-  .close-btn {
-    color: #8b949e;
-
-    &:hover {
-      background: #30363d;
-      color: #f85149;
-    }
-  }
-
   .sidebar {
     background: #161b22;
     border-right-color: #30363d;
   }
 
-  .section-title {
-    color: #8b949e;
-  }
-
-  .quick-template-btn {
-    color: #f0f6fc;
-
-    &:hover {
-      background: #21262d;
-    }
-
-    .template-hotkey {
-      background: #21262d;
-      color: #8b949e;
-    }
-  }
-
-  .nav-item {
-    color: #8b949e;
-
-    &:hover {
-      background: #21262d;
-      color: #f0f6fc;
-    }
-
-    &.active {
-      background: rgba(88, 166, 255, 0.15);
-      color: #58a6ff;
-    }
-
-    .nav-count {
-      background: #21262d;
-      color: #8b949e;
-    }
-
-    &.active .nav-count {
-      background: #58a6ff;
-      color: #0d1117;
-    }
-  }
-
-  .group-header {
-    color: #8b949e;
-
-    &:hover {
-      background: #21262d;
-      color: #f0f6fc;
-    }
-
-    &.active {
-      background: rgba(88, 166, 255, 0.15);
-      color: #58a6ff;
-    }
-
-    .group-count {
-      background: #21262d;
-      color: #8b949e;
-    }
-
-    &.active .group-count {
-      background: #58a6ff;
-      color: #0d1117;
-    }
-  }
-
-  .content-header {
-    background: #21262d;
-    border-bottom-color: #30363d;
-  }
-
-  .view-title {
-    color: #f0f6fc;
-  }
-
-  .view-description {
-    color: #8b949e;
-  }
-
-  .search-input {
+  .manager-title { color: #f0f6fc; }
+  .manager-description, .section-title { color: #8b949e; }
+  
+  .template-card {
     background: #0d1117;
     border-color: #30363d;
     color: #f0f6fc;
-
-    &:focus {
-      border-color: #58a6ff;
-      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.3);
-    }
-
-    &::placeholder {
-      color: #6e7681;
-    }
   }
-
-  .view-toggle-btn {
-    background: #21262d;
-    border-color: #30363d;
+  
+  .nav-item {
     color: #8b949e;
-
-    &:hover {
-      background: #30363d;
-      color: #f0f6fc;
-    }
-
-    &.active {
-      background: #58a6ff;
-      color: #0d1117;
-    }
-  }
-
-  .template-card {
-    background: #21262d;
-    border-color: #30363d;
-
-    &:hover {
-      border-color: #58a6ff;
-    }
-
-    &.invalid {
-      border-color: #f85149;
-      background: rgba(248, 81, 73, 0.1);
-    }
-  }
-
-  .template-name {
-    color: #f0f6fc;
-  }
-
-  .template-description {
-    color: #8b949e;
-  }
-
-  .template-action-btn {
-    background: #21262d;
-    border-color: #30363d;
-    color: #3fb950;
-
-    &:hover {
-      background: rgba(63, 185, 80, 0.15);
-      border-color: #3fb950;
-    }
-  }
-
-  .template-menu-trigger {
-    color: #8b949e;
-
-    &:hover {
-      background: #30363d;
-      color: #f0f6fc;
-    }
-  }
-
-  .template-menu-dropdown {
-    background: #21262d;
-    border-color: #30363d;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-
-    .menu-item {
-      color: #f0f6fc;
-
-      &:hover {
-        background: #30363d;
-      }
-
-      &.danger {
-        color: #f85149;
-
-        &:hover {
-          background: rgba(248, 81, 73, 0.15);
-        }
-      }
-    }
-
-    .menu-divider {
-      background: #30363d;
-    }
-  }
-
-  .template-tag {
-    background: #30363d;
-    border-color: #30363d;
-    color: #8b949e;
-  }
-
-  .stat-label {
-    color: #6e7681;
-  }
-
-  .stat-value {
-    color: #f0f6fc;
-
-    &.logic-and {
-      color: #3fb950;
-    }
-
-    &.logic-or {
-      color: #db6d28;
-    }
-  }
-
-  .template-errors {
-    background: rgba(248, 81, 73, 0.1);
-    border-color: #f85149;
-
-    .error-message {
-      color: #f85149;
-    }
-  }
-
-  .template-shared-indicator {
-    color: #58a6ff;
-    background: rgba(88, 166, 255, 0.15);
-  }
-
-  .empty-title {
-    color: #f0f6fc;
-  }
-
-  .empty-description {
-    color: #8b949e;
-  }
-
-  .create-first-btn {
-    background: #238636;
-
-    &:hover {
-      background: #2ea043;
-    }
+    &:hover { background: #21262d; }
   }
 }
