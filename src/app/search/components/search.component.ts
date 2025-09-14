@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { SearchTagComponent } from './search-tag.component';
 import { SearchDefinitionComponent } from './search-definition.component';
 import { SearchHistoryDropdownComponent } from './search-history-dropdown.component';
-import { TemplateManagerComponent } from './template-manager.component';
+import { TemplateListComponent } from './template-list.component';
 import { ExtendedTemplatesService, TemplatePreset } from '../services';
 import { ExtendedSearchTemplate } from '../models';
 import { SmartSuggestionsDropdownComponent } from './smart-suggestions-dropdown.component';
@@ -22,7 +22,7 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, SearchTagComponent, SearchDefinitionComponent, SearchHistoryDropdownComponent, TemplateManagerComponent, SmartSuggestionsDropdownComponent],
+  imports: [CommonModule, SearchTagComponent, SearchDefinitionComponent, SearchHistoryDropdownComponent, TemplateListComponent, SmartSuggestionsDropdownComponent],
   template: `
     <div class="search-container" [class.focused]="isFocused()">
       <!-- Search Mode Toggle -->
@@ -52,6 +52,15 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
 
       @if (!isRawQueryMode()) {
         <!-- Visual Mode -->
+        <!-- Template List -->
+        <app-template-list
+          [currentCriteria]="searchCriteria()"
+          [currentOperator]="currentLogicalOperator()"
+          [appliedTemplate]="currentAppliedTemplate()"
+          (templateApplied)="onTemplateApplied($event)"
+          (templateCreationRequested)="onTemplateCreationRequested()">
+        </app-template-list>
+        
         <!-- Search Input Bar -->
         <div class="search-input-wrapper">
           <input 
@@ -86,15 +95,6 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
               </svg>
             </button>
             
-            <button 
-              class="templates-btn"
-              type="button"
-              (click)="openTemplateManager()"
-              title="Manage templates">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 4.75A.75.75 0 0 1 2.75 4h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75zM2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8zm0 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75z"/>
-              </svg>
-            </button>
           </div>
           
           <!-- Smart Suggestions Dropdown - positioned relative to input -->
@@ -283,13 +283,6 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
       (select)="onHistorySelect($event)"
       (close)="closeHistoryDropdown()">
     </app-search-history-dropdown>
-    
-    <!-- Template Manager Modal -->
-    <app-template-manager
-      [isOpen]="showTemplateManager()"
-      (closed)="closeTemplateManager()"
-      (templateSelected)="onTemplateManagerSelect($event)">
-    </app-template-manager>
 
     <!-- Search Definition Modal -->
     @if (isDefinitionModalOpen()) {
@@ -336,9 +329,10 @@ export class SearchComponent implements OnInit, OnDestroy {
   protected readonly isRawQueryMode = signal<boolean>(false);
   protected readonly rawQueryInput = signal<string>('');
   protected readonly showHistoryDropdown = signal<boolean>(false);
-  protected readonly showTemplateManager = signal<boolean>(false);
   protected readonly showParsingWarning = signal<boolean>(false);
   protected readonly currentLogicalOperator = signal<LogicalOperator>(LogicalOperator.AND);
+  protected readonly currentAppliedTemplate = signal<ExtendedSearchTemplate | null>(null);
+  private suppressSuggestions = false;
   
   // Computed values
   protected readonly searchQuery = computed(() => {
@@ -422,8 +416,6 @@ export class SearchComponent implements OnInit, OnDestroy {
       if (event.key === 'Escape') {
         if (this.isDefinitionModalOpen()) {
           this.onDefinitionClose();
-        } else if (this.showTemplateManager()) {
-          this.closeTemplateManager();
         } else if (this.showHistoryDropdown()) {
           this.closeHistoryDropdown();
         } else if (this.showSuggestions()) {
@@ -477,7 +469,9 @@ export class SearchComponent implements OnInit, OnDestroy {
   onFocus(): void {
     untracked(() => {
       this.isFocused.set(true);
-      this.showSuggestions.set(true);
+      if (!this.suppressSuggestions) {
+        this.showSuggestions.set(true);
+      }
     });
   }
   
@@ -584,6 +578,9 @@ export class SearchComponent implements OnInit, OnDestroy {
       return;
     }
     
+    // Clear applied template since user is manually modifying search
+    this.currentAppliedTemplate.set(null);
+    
     this.searchCriteria.set([...current, criteria]);
     this.emitChanges();
   }
@@ -592,6 +589,9 @@ export class SearchComponent implements OnInit, OnDestroy {
     if (event) {
       event.stopPropagation();
     }
+    
+    // Clear applied template since user is manually modifying search
+    this.currentAppliedTemplate.set(null);
     
     const updated = this.searchCriteria().filter(c => c.id !== id);
     this.searchCriteria.set(updated);
@@ -1065,6 +1065,9 @@ export class SearchComponent implements OnInit, OnDestroy {
   }
 
   protected clearAllCriteria(): void {
+    // Clear applied template since user is manually clearing search
+    this.currentAppliedTemplate.set(null);
+    
     this.searchCriteria.set([]);
     this.emitChanges();
     
@@ -1077,6 +1080,13 @@ export class SearchComponent implements OnInit, OnDestroy {
   // Logical Operator Methods
   protected setLogicalOperator(operator: 'AND' | 'OR'): void {
     const logicalOp = operator === 'AND' ? LogicalOperator.AND : LogicalOperator.OR;
+    
+    // Only clear applied template if the operator actually changed
+    const currentOp = this.currentLogicalOperator();
+    if (currentOp !== logicalOp) {
+      this.currentAppliedTemplate.set(null);
+    }
+    
     this.currentLogicalOperator.set(logicalOp);
     
     // Emit changes to update the query
@@ -1085,6 +1095,9 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   // Extended Templates Methods
   protected onExtendedTemplateSelected(template: ExtendedSearchTemplate): void {
+    // Track the currently applied template
+    this.currentAppliedTemplate.set(template);
+    
     // Set the search mode first
     this.isRawQueryMode.set(template.searchMode === 'raw');
     
@@ -1096,10 +1109,21 @@ export class SearchComponent implements OnInit, OnDestroy {
       this.searchCriteria.set([...template.query.criteria]);
     }
     
-    // Emit changes and focus input
+    // Set the logical operator from the template
+    this.currentLogicalOperator.set(template.logicalOperator || LogicalOperator.AND);
+    
+    // Update template usage
+    this.extendedTemplatesService.useTemplate(template.id);
+    
+    // Emit changes and focus input without showing suggestions
     this.emitChanges();
     setTimeout(() => {
+      this.suppressSuggestions = true;
       this.focusSearchInput();
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        this.suppressSuggestions = false;
+      }, 100);
     }, 50);
   }
 
@@ -1124,22 +1148,116 @@ export class SearchComponent implements OnInit, OnDestroy {
     // Template was successfully created - could show a notification
   }
 
-  protected openTemplateManager(): void {
-    this.showTemplateManager.set(true);
-    
-    // Close other dropdowns when opening template manager
-    this.showSuggestions.set(false);
-    this.closeHistoryDropdown();
-  }
-
-  protected closeTemplateManager(): void {
-    this.showTemplateManager.set(false);
-  }
-
-  protected onTemplateManagerSelect(template: ExtendedSearchTemplate): void {
+  protected onTemplateApplied(template: ExtendedSearchTemplate): void {
     // Apply the selected template
     this.onExtendedTemplateSelected(template);
-    this.closeTemplateManager();
+  }
+
+  protected onTemplateCreationRequested(): void {
+    // Open template creation dialog with current search criteria
+    this.openTemplateCreationDialog();
+  }
+
+  private openTemplateCreationDialog(): void {
+    const current = this.searchCriteria();
+    const operator = this.currentLogicalOperator();
+    const appliedTemplate = this.currentAppliedTemplate();
+    
+    if (current.length === 0) {
+      alert('No search criteria to save. Add some filters first.');
+      return;
+    }
+    
+    // If we have an applied template, show three-option dialog
+    if (appliedTemplate) {
+      this.showTemplateUpdateDialog(appliedTemplate, current, operator);
+      return;
+    }
+    
+    // Create a new template
+    const name = prompt('Enter template name:');
+    if (!name?.trim()) {
+      return;
+    }
+    
+    this.createTemplate(name.trim(), current, operator);
+  }
+
+  private async createTemplate(name: string, criteria: SearchCriteria[], operator: LogicalOperator): Promise<void> {
+    try {
+      const newTemplate = await this.extendedTemplatesService.createExtendedTemplate({
+        name,
+        query: {
+          criteria,
+          rawQuery: this.isRawQueryMode() ? this.rawQueryInput() : '',
+          isValid: true
+        },
+        searchMode: this.isRawQueryMode() ? 'raw' : 'visual',
+        tags: [],
+        isPublic: false,
+        logicalOperator: operator
+      });
+      
+      // Set the newly created template as the applied template
+      this.currentAppliedTemplate.set(newTemplate);
+    } catch (error) {
+      alert('Failed to create template. Please try again.');
+    }
+  }
+
+  private async updateTemplate(template: ExtendedSearchTemplate, criteria: SearchCriteria[], operator: LogicalOperator): Promise<void> {
+    try {
+      await this.extendedTemplatesService.updateExtendedTemplate(template.id, {
+        query: {
+          criteria,
+          rawQuery: this.isRawQueryMode() ? this.rawQueryInput() : '',
+          isValid: true
+        },
+        searchMode: this.isRawQueryMode() ? 'raw' : 'visual',
+        logicalOperator: operator,
+        updatedAt: new Date()
+      });
+      
+      // Update the currently applied template reference
+      this.currentAppliedTemplate.set({
+        ...template,
+        query: {
+          criteria,
+          rawQuery: this.isRawQueryMode() ? this.rawQueryInput() : '',
+          isValid: true
+        },
+        logicalOperator: operator,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      alert('Failed to update template. Please try again.');
+    }
+  }
+
+  private showTemplateUpdateDialog(appliedTemplate: ExtendedSearchTemplate, criteria: SearchCriteria[], operator: LogicalOperator): void {
+    // Create a structured dialog using browser APIs
+    const message = `You have modified the template "${appliedTemplate.name}". What would you like to do?\n\n` +
+                   'Click OK to UPDATE the existing template\n' +
+                   'Click Cancel to see more options';
+    
+    const updateExisting = confirm(message);
+    
+    if (updateExisting) {
+      // User chose to update existing template
+      this.updateTemplate(appliedTemplate, criteria, operator);
+    } else {
+      // Show second dialog with create new or cancel options
+      const createNew = confirm('Click OK to CREATE A NEW template\nClick Cancel to cancel this operation');
+      
+      if (createNew) {
+        // User chose to create new template
+        const name = prompt('Enter name for new template:');
+        if (name?.trim()) {
+          this.createTemplate(name.trim(), criteria, operator);
+        }
+      }
+      // If user clicks cancel on second dialog, nothing happens (operation cancelled)
+    }
   }
 
 }

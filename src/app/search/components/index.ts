@@ -4,6 +4,7 @@ export * from './search-definition.component';
 export * from './date-range-picker.component';
 export * from './template-selector.component';
 export * from './template-manager.component';
+export * from './template-list.component';
 export * from './template-sharing.component';
 export * from './preset-browser.component';
 export * from './search-templates-interface.component';
