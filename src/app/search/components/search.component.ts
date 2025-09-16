@@ -108,75 +108,65 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
         
         <!-- Active Search Criteria -->
         @if (searchCriteria().length > 0) {
-          <div class="search-criteria-section">
-            <div class="criteria-header">
-              <div class="criteria-title">
-                <span class="title-text">Active Filters</span>
-                <span class="criteria-count">{{ searchCriteria().length }}</span>
-              </div>
-              <div class="criteria-actions">
-                @if (searchCriteria().length > 1) {
-                  <div class="logical-operator-toggle">
-                    <span class="operator-label">Join with:</span>
-                    <div class="operator-buttons">
-                      <button 
-                        class="operator-btn"
-                        [class.active]="currentLogicalOperator() === 'AND'"
-                        (click)="setLogicalOperator('AND')"
-                        type="button"
-                        title="All conditions must match">
-                        AND
-                      </button>
-                      <button 
-                        class="operator-btn"
-                        [class.active]="currentLogicalOperator() === 'OR'"
-                        (click)="setLogicalOperator('OR')"
-                        type="button"
-                        title="Any condition must match">
-                        OR
-                      </button>
-                    </div>
-                  </div>
+          <div class="filters-bar">
+            <div class="filters-content">
+              <span class="filters-label">Filters ({{ searchCriteria().length }})</span>
+              
+              <div class="filters-tags">
+                @for (criteria of searchCriteria(); track criteria.id; let i = $index) {
+                  @if (i > 0) {
+                    <span class="operator-connector">{{ currentLogicalOperator() }}</span>
+                  }
+                  <app-search-tag
+                    [criteria]="criteria"
+                    [index]="i"
+                    [editable]="true"
+                    [removable]="true"
+                    [draggable]="searchCriteria().length > 1"
+                    (edit)="editCriteria($event.id)"
+                    (remove)="removeCriteria($event.id)"
+                    (dragStart)="onCriteriaDragStart($event)"
+                    (dragOver)="onCriteriaDragOver($event)"
+                    (drop)="onCriteriaDrop($event)"
+                    (dragEnd)="onCriteriaDragEnd()">
+                  </app-search-tag>
                 }
-                <button 
-                  class="clear-all-btn"
-                  type="button"
-                  (click)="clearAllCriteria()"
-                  title="Clear all filters">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                  </svg>
-                  Clear All
-                </button>
               </div>
             </div>
             
-            <!-- Search Tags -->
-            <div class="search-tags" 
-                 #searchTagsContainer>
-              @for (criteria of searchCriteria(); track criteria.id; let i = $index) {
-                @if (i > 0) {
-                  <div class="logical-operator-connector">
-                    <span class="operator-text">{{ currentLogicalOperator() }}</span>
-                  </div>
-                }
-                <app-search-tag
-                  [criteria]="criteria"
-                  [index]="i"
-                  [editable]="true"
-                  [removable]="true"
-                  [draggable]="searchCriteria().length > 1"
-                  (edit)="editCriteria($event.id)"
-                  (remove)="removeCriteria($event.id)"
-                  (dragStart)="onCriteriaDragStart($event)"
-                  (dragOver)="onCriteriaDragOver($event)"
-                  (drop)="onCriteriaDrop($event)"
-                  (dragEnd)="onCriteriaDragEnd()">
-                </app-search-tag>
+            <div class="filters-actions">
+              @if (searchCriteria().length > 1) {
+                <div class="operator-toggle">
+                  <button 
+                    class="operator-btn"
+                    [class.active]="currentLogicalOperator() === 'AND'"
+                    (click)="setLogicalOperator('AND')"
+                    type="button"
+                    title="All conditions must match">
+                    AND
+                  </button>
+                  <button 
+                    class="operator-btn"
+                    [class.active]="currentLogicalOperator() === 'OR'"
+                    (click)="setLogicalOperator('OR')"
+                    type="button"
+                    title="Any condition must match">
+                    OR
+                  </button>
+                </div>
               }
+              
+              <button 
+                class="clear-all-btn"
+                type="button"
+                (click)="clearAllCriteria()"
+                title="Clear all filters">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M11.383 3.07904C11.7658 2.69625 12.3916 2.69625 12.7744 3.07904C13.1572 3.46182 13.1572 4.08758 12.7744 4.47037L8.24477 9L12.7744 13.5296C13.1572 13.9124 13.1572 14.5382 12.7744 14.921C12.3916 15.3037 11.7658 15.3037 11.383 14.921L6.85355 10.3914L2.32389 14.921C1.94111 15.3037 1.31535 15.3037 0.932567 14.921C0.549784 14.5382 0.549784 13.9124 0.932567 13.5296L5.46222 9L0.932567 4.47037C0.549784 4.08758 0.549784 3.46182 0.932567 3.07904C1.31535 2.69625 1.94111 2.69625 2.32389 3.07904L6.85355 7.60869L11.383 3.07904Z"/>
+                </svg>
+                Clear
+              </button>
             </div>
-            
           </div>
         }
         
