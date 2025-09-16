@@ -265,7 +265,6 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
           }
         </div>
       }
-    </div>
 
     <!-- Search History Dropdown -->
     <app-search-history-dropdown
@@ -283,6 +282,7 @@ import { SearchConfigurationService, SearchValidationService, QueryParserService
         (close)="onDefinitionClose()">
       </app-search-definition>
     }
+  </div>
   `,
   styleUrl: './search.component.scss'
 })

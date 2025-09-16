@@ -356,6 +356,15 @@
   &.error-info { background-color: #e3f2fd; border-color: #64b5f6; color: #1565c0; &:hover { background-color: #c5e1fd; border-color: #42a5f5; } }
 }
 
+// Dark mode support for filters
+@media (prefers-color-scheme: dark) {
+  .filters-bar { background: #161b22; border-color: #30363d; }
+  .filters-label { color: #f0f6fc; }
+  .operator-connector { background: #0d1117; border-color: #30363d; color: #8b949e; }
+  .operator-btn { background: #0d1117; color: #8b949e; border-color: #30363d; &:hover { background: #21262d; color: #f0f6fc; } &.active { background: #58a6ff; color: #ffffff; &:hover { background: #4493f8; } } }
+  .clear-all-btn { background: #0d1117; color: #8b949e; border-color: #30363d; &:hover { background: #21262d; border-color: #f85149; color: #f85149; } }
+}
+
 // Responsive & accessibility consolidated
 @media (max-width: 768px) {
   .search-container { max-width: 100%; margin: 0 16px; }
